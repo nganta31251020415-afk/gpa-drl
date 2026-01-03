@@ -1,0 +1,1058 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GPA & ĐRL Tracker (7/8 HK)</title>
+  <style>
+    :root{
+      --bg:#0b1020; --card:#111a33; --muted:#93a4c7; --text:#e9eeff; --line:#22305a;
+      --ok:#2ecc71; --bad:#ff6b6b; --warn:#f1c40f; --accent:#2f5bff;
+    }
+    *{box-sizing:border-box}
+    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:linear-gradient(180deg,#070b17,#0b1020 30%); color:var(--text); }
+    header{ padding:18px 16px; max-width:1200px; margin:0 auto; }
+    h1{ margin:0 0 6px; font-size:20px; }
+    .sub{ color:var(--muted); font-size:13px; line-height:1.45; }
+    main{ max-width:1200px; margin:0 auto; padding:0 16px 24px; display:grid; gap:14px; grid-template-columns: 1.2fr 0.8fr; }
+    @media (max-width: 1050px){ main{ grid-template-columns:1fr; } }
+    .card{ background:rgba(17,26,51,.9); border:1px solid var(--line); border-radius:14px; padding:14px; box-shadow: 0 12px 30px rgba(0,0,0,.25); }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
+    label{ display:block; font-size:12px; color:var(--muted); margin:0 0 6px; }
+    input, select, button, textarea{
+      background:#0c142c; border:1px solid var(--line); color:var(--text);
+      border-radius:10px; padding:10px; outline:none; font-size:14px;
+    }
+    input:focus, select:focus, textarea:focus{ border-color:#3957ff; }
+    button{ cursor:pointer; }
+    button.primary{ background:var(--accent); border-color:var(--accent); }
+    button.ghost{ background:transparent; }
+    button.danger{ background:#b42222; border-color:#b42222; }
+    .pill{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; color:var(--muted); font-size:12px; }
+    .grid{ display:grid; gap:10px; grid-template-columns: repeat(12, 1fr); }
+    .col-2{ grid-column: span 2; } .col-3{ grid-column: span 3; } .col-4{ grid-column: span 4; }
+    .col-5{ grid-column: span 5; } .col-6{ grid-column: span 6; } .col-7{ grid-column: span 7; }
+    .col-8{ grid-column: span 8; } .col-10{ grid-column: span 10; } .col-12{ grid-column: span 12; }
+    @media (max-width: 1050px){
+      .col-2,.col-3,.col-4,.col-5,.col-6,.col-7,.col-8,.col-10{ grid-column: span 12; }
+    }
+    .divider{ height:1px; background:var(--line); margin:12px 0; }
+    table{ width:100%; border-collapse: collapse; }
+    th, td{ padding:9px 8px; border-bottom:1px solid var(--line); font-size:13px; vertical-align: top; }
+    th{ color:var(--muted); font-weight:600; text-align:left; }
+    .right{ text-align:right; }
+    .muted{ color:var(--muted); }
+    .ok{ color:var(--ok); font-weight:800; }
+    .bad{ color:var(--bad); font-weight:800; }
+    .warn{ color:var(--warn); font-weight:800; }
+    a{ color:#9db3ff; }
+    .tabs{ display:flex; gap:8px; flex-wrap:wrap; }
+    .tab{ padding:8px 10px; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--text); }
+    .tab.active{ border-color:var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+    .toast{ position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:#0c142c; border:1px solid var(--line); padding:10px 12px; border-radius:12px; color:var(--text); display:none; max-width: min(560px, 92vw); }
+    .small{ font-size:12px; }
+    .kpi{ display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; }
+    @media (max-width: 1050px){ .kpi{ grid-template-columns: repeat(2, 1fr); } }
+    .kpi .box{ border:1px solid var(--line); border-radius:12px; padding:10px; background:#0c142c; }
+    .kpi .num{ font-size:18px; font-weight:900; margin-top:4px; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>GPA & ĐRL Tracker (tuỳ 7 hoặc 8 học kì)</h1>
+  <div class="sub">
+    - Nhập môn học (giữa kì/cuối kì + hệ số + tín chỉ) → tự tính điểm 10, chữ, thang 4, GPA học kì & tích luỹ<br/>
+    - Nhập hoạt động ĐRL theo Mục 1–6 + minh chứng → tự chặn trần, tổng ĐRL tối đa 100/học kì<br/>
+    - Có mục tiêu ngắn hạn từng kì + mục tiêu dài hạn + theo dõi tín chỉ tối thiểu + cơ hội học bổng
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <div class="row" style="justify-content:space-between; align-items:center;">
+      <div class="tabs">
+        <button class="tab active" data-tab="settings">Cài đặt</button>
+        <button class="tab" data-tab="courses">Môn học / GPA</button>
+        <button class="tab" data-tab="drl">ĐRL / Minh chứng</button>
+        <button class="tab" data-tab="summary">Tổng hợp</button>
+      </div>
+      <div class="row">
+        <button class="ghost" id="btnExport">Xuất JSON</button>
+        <button class="ghost" id="btnImport">Nhập JSON</button>
+        <button class="danger" id="btnReset">Xoá hết</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- SETTINGS -->
+    <div id="tab-settings">
+      <div class="grid">
+        <div class="col-4">
+          <label>Số học kì (7 hoặc 8)</label>
+          <select id="setSemCount">
+            <option value="7">7 học kì</option>
+            <option value="8">8 học kì</option>
+          </select>
+        </div>
+        <div class="col-4">
+          <label>Tổng tín chỉ tối thiểu cần hoàn thành</label>
+          <input id="setMinCredits" type="number" step="1" placeholder="VD: 120" />
+        </div>
+        <div class="col-4">
+          <label>GPA mục tiêu dài hạn (tích luỹ)</label>
+          <input id="setTargetCgpa" type="number" step="0.01" placeholder="VD: 3.60" />
+        </div>
+
+        <div class="col-6">
+          <label>Ngưỡng “Cơ hội học bổng cao” GPA (theo học kì)</label>
+          <input id="setScholarGpa" type="number" step="0.01" value="3.6" />
+        </div>
+        <div class="col-6">
+          <label>Ngưỡng “Cơ hội học bổng cao” ĐRL (theo học kì)</label>
+          <input id="setScholarDrl" type="number" step="1" value="90" />
+        </div>
+
+        <div class="col-12">
+          <div class="pill">ĐRL tối đa 100/học kì • Quy tắc “đậu tín chỉ”: điểm tổng (10) ≥ 5.0</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="kpi" id="kpiBox"></div>
+    </div>
+
+    <!-- COURSES -->
+    <div id="tab-courses" style="display:none;">
+      <div class="row">
+        <span class="pill">Nhập môn học</span>
+        <span class="muted small">Điểm tổng thang 10 = GK * HS_GK + CK * HS_CK (tự chuẩn hoá nếu tổng hệ số ≠ 1 hoặc ≠ 100)</span>
+      </div>
+      <div class="divider"></div>
+
+      <div class="grid">
+        <div class="col-2">
+          <label>Học kì</label>
+          <select id="cSem"></select>
+        </div>
+        <div class="col-5">
+          <label>Tên môn</label>
+          <input id="cName" placeholder="VD: Giải tích 1" />
+        </div>
+        <div class="col-2">
+          <label>Tín chỉ</label>
+          <input id="cCredits" type="number" step="0.5" placeholder="VD: 3" />
+        </div>
+        <div class="col-1">
+          <label>GK</label>
+          <input id="cMid" type="number" step="0.1" placeholder="0-10" />
+        </div>
+        <div class="col-1">
+          <label>CK</label>
+          <input id="cFinal" type="number" step="0.1" placeholder="0-10" />
+        </div>
+        <div class="col-1">
+          <label>HS GK</label>
+          <input id="cMidW" type="number" step="0.01" value="0.4" />
+        </div>
+        <div class="col-1">
+          <label>HS CK</label>
+          <input id="cFinalW" type="number" step="0.01" value="0.6" />
+        </div>
+        <div class="col-12 row">
+          <button class="primary" id="btnAddCourse">+ Thêm môn</button>
+          <button class="ghost" id="btnUpdateCourse" style="display:none;">Lưu chỉnh sửa</button>
+          <button class="ghost" id="btnCancelCourseEdit" style="display:none;">Huỷ</button>
+          <span class="pill" id="courseCount">0 môn</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="grid">
+        <div class="col-3">
+          <label>Lọc HK</label>
+          <select id="courseFilterSem"></select>
+        </div>
+        <div class="col-6">
+          <label>Tìm tên môn</label>
+          <input id="courseFilterText" placeholder="gõ vài chữ..." />
+        </div>
+      </div>
+
+      <div style="overflow:auto; margin-top:10px;">
+        <table id="courseTable">
+          <thead>
+            <tr>
+              <th style="min-width:60px;">HK</th>
+              <th style="min-width:220px;">Môn</th>
+              <th class="right">TC</th>
+              <th class="right">GK</th>
+              <th class="right">CK</th>
+              <th class="right">HS GK</th>
+              <th class="right">HS CK</th>
+              <th class="right">Tổng (10)</th>
+              <th>Chữ</th>
+              <th class="right">Thang 4</th>
+              <th class="right">Điểm 4 * TC</th>
+              <th style="min-width:170px;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DRL -->
+    <div id="tab-drl" style="display:none;">
+      <div class="row">
+        <span class="pill">Nhật ký hoạt động ĐRL (có minh chứng)</span>
+        <span class="muted small">Mỗi hoạt động thường +1 điểm, bạn vẫn có thể chỉnh “Điểm”.</span>
+      </div>
+      <div class="divider"></div>
+
+      <div class="grid">
+        <div class="col-2">
+          <label>Học kì</label>
+          <select id="aSem"></select>
+        </div>
+        <div class="col-5">
+          <label>Mục chấm điểm</label>
+          <select id="aCat"></select>
+        </div>
+        <div class="col-5">
+          <label>Tên hoạt động</label>
+          <input id="aName" placeholder="VD: Tham gia seminar NCKH..." />
+        </div>
+
+        <div class="col-2">
+          <label>Điểm (+)</label>
+          <input id="aPts" type="number" step="0.5" value="1" />
+        </div>
+        <div class="col-6">
+          <label>Minh chứng (URL/Drive)</label>
+          <input id="aEv" placeholder="https://..." />
+        </div>
+        <div class="col-4">
+          <label>Ngày</label>
+          <input id="aDate" type="date" />
+        </div>
+        <div class="col-12">
+          <label>Ghi chú</label>
+          <textarea id="aNote" rows="2" placeholder="Tuỳ chọn..."></textarea>
+        </div>
+
+        <div class="col-12 row">
+          <button class="primary" id="btnAddAct">+ Thêm hoạt động</button>
+          <button class="ghost" id="btnUpdateAct" style="display:none;">Lưu chỉnh sửa</button>
+          <button class="ghost" id="btnCancelActEdit" style="display:none;">Huỷ</button>
+          <span class="pill" id="actCount">0 hoạt động</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="grid">
+        <div class="col-3">
+          <label>Lọc HK</label>
+          <select id="actFilterSem"></select>
+        </div>
+        <div class="col-4">
+          <label>Lọc Mục</label>
+          <select id="actFilterCat"></select>
+        </div>
+        <div class="col-5">
+          <label>Tìm theo tên</label>
+          <input id="actFilterText" placeholder="gõ vài chữ..." />
+        </div>
+      </div>
+
+      <div style="overflow:auto; margin-top:10px;">
+        <table id="actTable">
+          <thead>
+            <tr>
+              <th style="min-width:60px;">HK</th>
+              <th style="min-width:260px;">Mục</th>
+              <th style="min-width:260px;">Hoạt động</th>
+              <th class="right">Điểm</th>
+              <th style="min-width:130px;">Minh chứng</th>
+              <th style="min-width:110px;">Ngày</th>
+              <th style="min-width:170px;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div id="tab-summary" style="display:none;">
+      <div class="row">
+        <span class="pill">Tổng hợp theo học kì</span>
+      </div>
+      <div class="divider"></div>
+
+      <div class="grid">
+        <div class="col-3">
+          <label>Chọn HK để nhập mục tiêu ngắn hạn</label>
+          <select id="sSem"></select>
+        </div>
+        <div class="col-3">
+          <label>Mục tiêu GPA HK</label>
+          <input id="sGoalGpa" type="number" step="0.01" placeholder="VD 3.60" />
+        </div>
+        <div class="col-3">
+          <label>Mục tiêu ĐRL HK</label>
+          <input id="sGoalDrl" type="number" step="1" placeholder="VD 90" />
+        </div>
+        <div class="col-3 row" style="align-items:center;">
+          <button class="primary" id="btnSaveGoals">Lưu mục tiêu HK</button>
+          <span class="muted small" id="goalHint"></span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div style="overflow:auto;">
+        <table id="summaryTable">
+          <thead>
+            <tr>
+              <th>HK</th>
+              <th class="right">TC (đk)</th>
+              <th class="right">GPA HK</th>
+              <th class="right">Mục tiêu GPA</th>
+              <th>Xếp loại HK</th>
+              <th class="right">ĐRL HK</th>
+              <th class="right">Mục tiêu ĐRL</th>
+              <th>Hoàn thành mục tiêu</th>
+              <th>Cơ hội học bổng</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="divider"></div>
+      <div class="kpi" id="kpiSummary"></div>
+    </div>
+  </section>
+
+  <aside class="card">
+    <div class="row" style="justify-content:space-between; align-items:center;">
+      <span class="pill">Trạng thái nhanh</span>
+      <span class="muted small">Tự cập nhật theo dữ liệu bạn nhập</span>
+    </div>
+    <div class="divider"></div>
+    <div class="kpi" id="kpiRight"></div>
+
+    <div class="divider"></div>
+    <div class="muted small">
+      <b>Quy đổi điểm (đúng theo bạn đưa)</b>:<br/>
+      9.0 A+ 4.0 • 8.5 A 4.0 • 8.0 B+ 3.5 • 7.0 B 3.0 • 6.5 C+ 2.5 • 5.5 C 2.0 • 4.0 D+ 1.5 • 3.0 D 1.0 • 0.0 F 0.0<br/>
+      <b>Đậu tín chỉ:</b> điểm tổng (10) ≥ 5.0
+    </div>
+  </aside>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========= CONFIG ========= */
+const DRL_CATS = [
+  { id: 1, cap: 20, name: "Mục 1 (20đ): Học tập, NCKH, khởi nghiệp & đổi mới sáng tạo" },
+  { id: 2, cap: 25, name: "Mục 2 (25đ): Chấp hành nội quy, quy chế, quy định" },
+  { id: 3, cap: 20, name: "Mục 3 (20đ): Phát triển bền vững, ĐH xanh, VH-VN-TT, CT-XH" },
+  { id: 4, cap: 25, name: "Mục 4 (25đ): Ý thức công dân, quan hệ cộng đồng" },
+  { id: 5, cap: 10, name: "Mục 5 (10đ): Công tác lớp/đoàn thể & thành tích nổi bật" },
+  { id: 6, cap: 10, name: "Mục 6 (10đ): Điểm cộng trường hợp đặc biệt" },
+];
+const STORAGE_KEY = "gpa_drl_tracker_final_v1";
+
+/* ========= STATE ========= */
+function defaultState(){
+  return {
+    settings: {
+      semCount: 7,
+      minCredits: "",
+      targetCgpa: "",
+      scholarGpa: 3.6,
+      scholarDrl: 90,
+    },
+    semesters: {}, // { [sem]: { goalGpa:"", goalDrl:"" } }
+    courses: [],   // {id, sem, name, credits, mid, final, midW, finalW}
+    activities: [],// {id, sem, cat, name, pts, ev, date, note}
+    lastId: 0
+  };
+}
+const state = loadState();
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultState();
+    const obj = JSON.parse(raw);
+    return { ...defaultState(), ...obj, settings:{...defaultState().settings, ...(obj.settings||{})} };
+  }catch(e){
+    return defaultState();
+  }
+}
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+/* ========= UTILS ========= */
+const $ = (id)=>document.getElementById(id);
+function toast(msg){
+  const t=$("toast");
+  t.textContent=msg;
+  t.style.display="block";
+  clearTimeout(toast._tm);
+  toast._tm=setTimeout(()=>t.style.display="none", 2200);
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function fmt(n, digits=2){
+  if(n===""||n===null||n===undefined) return "";
+  const x=Number(n);
+  if(Number.isNaN(x)) return "";
+  const p=Math.pow(10,digits);
+  return (Math.round(x*p)/p).toString();
+}
+function linkify(url){
+  if(!url) return "";
+  const safe=url.replace(/"/g,"&quot;");
+  return `<a href="${safe}" target="_blank" rel="noopener">Mở</a>`;
+}
+
+/* ========= GRADING ========= */
+function normalizeWeights(midW, finalW){
+  let a=Number(midW), b=Number(finalW);
+  if(!Number.isFinite(a)) a=0;
+  if(!Number.isFinite(b)) b=0;
+  const sum=a+b;
+  if(sum===0) return {a:0.4, b:0.6};
+  return {a: a/sum, b: b/sum}; // hỗ trợ nhập 40/60 hoặc 0.4/0.6
+}
+function score10(course){
+  const mid=Number(course.mid), fin=Number(course.final);
+  if(!Number.isFinite(mid) || !Number.isFinite(fin)) return "";
+  const w=normalizeWeights(course.midW, course.finalW);
+  let s = mid*w.a + fin*w.b;
+  s = Math.max(0, Math.min(10, s));
+  return s;
+}
+
+// ====== QUY ĐỔI ĐÚNG THEO BẢNG BẠN ĐƯA ======
+function toLetterAnd4(score){
+  if(score==="") return {letter:"", g4:""};
+  const s = Number(score);
+
+  if(s >= 9.0)  return {letter:"A+", g4:4.0};
+  if(s >= 8.5)  return {letter:"A",  g4:4.0};
+  if(s >= 8.0)  return {letter:"B+", g4:3.5};
+  if(s >= 7.0)  return {letter:"B",  g4:3.0};
+  if(s >= 6.5)  return {letter:"C+", g4:2.5};
+  if(s >= 5.5)  return {letter:"C",  g4:2.0};
+  if(s >= 4.0)  return {letter:"D+", g4:1.5};
+  if(s >= 3.0)  return {letter:"D",  g4:1.0};
+  return {letter:"F",  g4:0.0};
+}
+
+// ====== ĐẬU TÍN CHỈ: ĐIỂM TỔNG (10) >= 5.0 ======
+function isPassed(score10){
+  if(score10 === "" || score10 === null || score10 === undefined) return false;
+  return Number(score10) >= 5.0;
+}
+
+/* ========= CALC: GPA ========= */
+function calcSemesterCourses(sem){
+  const list = state.courses.filter(c=>c.sem===sem);
+  let creditsAll=0, creditsPassed=0, sumG4=0;
+
+  const rows=list.map(c=>{
+    const s10=score10(c);
+    const lg=toLetterAnd4(s10);
+    const cr=Number(c.credits);
+    const g4=lg.g4===""? "": Number(lg.g4);
+    const g4x = (lg.g4===""||!Number.isFinite(cr))? "" : g4*cr;
+
+    if(Number.isFinite(cr)){
+      creditsAll += cr;
+      if(lg.g4!=="" ) sumG4 += g4*cr;      // GPA vẫn tính theo bảng quy đổi
+      if(isPassed(s10)) creditsPassed += cr; // TÍN CHỈ HOÀN THÀNH theo >=5
+    }
+
+    return { ...c, s10, letter:lg.letter, g4:lg.g4, g4x, passed:isPassed(s10) };
+  });
+
+  const gpa = creditsAll>0 ? (sumG4/creditsAll) : "";
+  return { rows, creditsAll, creditsPassed, gpa };
+}
+function calcCumulative(){
+  const semCount = state.settings.semCount;
+  let credits=0, sum=0, passed=0;
+  for(let s=1;s<=semCount;s++){
+    const cs=calcSemesterCourses(s);
+    if(cs.creditsAll>0){
+      credits += cs.creditsAll;
+      passed += cs.creditsPassed;
+      sum += (cs.gpa===""?0:Number(cs.gpa))*cs.creditsAll;
+    }
+  }
+  const cgpa = credits>0 ? (sum/credits) : "";
+  return { creditsAll: credits, creditsPassed: passed, cgpa };
+}
+function classifySemesterGPA(gpa){
+  if(gpa==="") return "";
+  const x=Number(gpa);
+  if(x>=3.6) return "Xuất sắc";
+  if(x>=3.2) return "Giỏi";
+  if(x>=2.5) return "Khá";
+  if(x>=2.0) return "Trung bình";
+  return "Yếu";
+}
+
+/* ========= CALC: DRL ========= */
+function calcDrlSemester(sem){
+  const acts = state.activities.filter(a=>a.sem===sem);
+  const raw={}; DRL_CATS.forEach(c=>raw[c.id]=0);
+  for(const a of acts){
+    const v=Number(a.pts||0);
+    if(Number.isFinite(v)) raw[a.cat] += v;
+  }
+  const capped={}; let total=0;
+  for(const c of DRL_CATS){
+    const v=raw[c.id];
+    const vv=Math.min(c.cap, v);
+    capped[c.id]=vv;
+    total += vv;
+  }
+  total = Math.min(100, total);
+  return { raw, capped, total };
+}
+
+/* ========= SCHOLARSHIP / GOALS ========= */
+function scholarshipLabel(semGpa, semDrl){
+  const gRule=Number(state.settings.scholarGpa);
+  const dRule=Number(state.settings.scholarDrl);
+  if(semGpa==="" || semDrl==="") return {text:"", cls:""};
+  const g=Number(semGpa), d=Number(semDrl);
+  if(!Number.isFinite(g)||!Number.isFinite(d)) return {text:"", cls:""};
+  if(g>=gRule && d>=dRule) return {text:"Cơ hội cao ✨", cls:"ok"};
+  if(g>=gRule-0.2 && d>=dRule-5) return {text:"Khá ổn 👍", cls:"warn"};
+  return {text:"Cần cố gắng", cls:"bad"};
+}
+function goalStatus(sem, semGpa, semDrl){
+  const goals = state.semesters[sem] || {goalGpa:"", goalDrl:""};
+  const gOk = goals.goalGpa==="" ? null : (semGpa!=="" && Number(semGpa) >= Number(goals.goalGpa));
+  const dOk = goals.goalDrl==="" ? null : (semDrl!=="" && Number(semDrl) >= Number(goals.goalDrl));
+  if(gOk===null && dOk===null) return {text:"", cls:"muted"};
+  if((gOk===null || gOk===true) && (dOk===null || dOk===true)) return {text:"Đạt ✅", cls:"ok"};
+  return {text:"Chưa đạt ❌", cls:"bad"};
+}
+
+/* ========= UI BUILD ========= */
+function rebuildSemesterOptions(){
+  const n = Number(state.settings.semCount);
+  const opts = Array.from({length:n}, (_,i)=>`<option value="${i+1}">Học kì ${i+1}</option>`).join("");
+  ["cSem","aSem","sSem"].forEach(id=>$(id).innerHTML=opts);
+
+  $("courseFilterSem").innerHTML = `<option value="all">Tất cả</option>` + opts;
+  $("actFilterSem").innerHTML = `<option value="all">Tất cả</option>` + opts;
+}
+function fillCategoryOptions(){
+  const opts = DRL_CATS.map(c=>`<option value="${c.id}">${escapeHtml(c.name)}</option>`).join("");
+  $("aCat").innerHTML = opts;
+  $("actFilterCat").innerHTML = `<option value="all">Tất cả</option>` + opts;
+}
+
+/* ========= RENDER: KPI ========= */
+function renderKpi(){
+  const cum = calcCumulative();
+  const minCredits = state.settings.minCredits===""? "" : Number(state.settings.minCredits);
+  const need = (minCredits!=="" && Number.isFinite(minCredits)) ? Math.max(0, minCredits - cum.creditsPassed) : "";
+  const cgpa = cum.cgpa==="" ? "" : Number(cum.cgpa);
+  const target = state.settings.targetCgpa===""? "" : Number(state.settings.targetCgpa);
+  const prog = (cgpa!=="" && target!=="" && Number.isFinite(target) && target>0) ? (cgpa/target) : "";
+
+  const right = [
+    {label:"GPA tích luỹ hiện tại", value: cgpa===""? "-" : fmt(cgpa,2)},
+    {label:"Tín chỉ đã hoàn thành (đậu)", value: fmt(cum.creditsPassed,1) || "-"},
+    {label:"Tín chỉ tối thiểu cần", value: state.settings.minCredits===""? "-" : fmt(minCredits,0)},
+    {label:"Còn thiếu (tối thiểu)", value: need===""? "-" : fmt(need,1)},
+  ];
+  $("kpiRight").innerHTML = right.map(x=>`
+    <div class="box">
+      <div class="muted small">${escapeHtml(x.label)}</div>
+      <div class="num">${escapeHtml(String(x.value))}</div>
+    </div>`).join("");
+
+  const kpiSet = [
+    {label:"Số học kì", value: state.settings.semCount},
+    {label:"Ngưỡng HB (GPA/ĐRL)", value: `${fmt(state.settings.scholarGpa,2)} / ${fmt(state.settings.scholarDrl,0)}`},
+    {label:"GPA mục tiêu dài hạn", value: state.settings.targetCgpa===""? "-" : fmt(state.settings.targetCgpa,2)},
+    {label:"Tiến độ mục tiêu GPA", value: (prog===""? "-" : `${fmt(prog*100,0)}%`)},
+  ];
+  $("kpiBox").innerHTML = kpiSet.map(x=>`
+    <div class="box">
+      <div class="muted small">${escapeHtml(String(x.label))}</div>
+      <div class="num">${escapeHtml(String(x.value))}</div>
+    </div>`).join("");
+}
+
+/* ========= RENDER: COURSES TABLE ========= */
+let editingCourseId = null;
+function renderCourses(){
+  const fs = $("courseFilterSem").value;
+  const ft = $("courseFilterText").value.trim().toLowerCase();
+
+  let list = [...state.courses].sort((a,b)=>(a.sem-b.sem) || (a.id-b.id));
+  if(fs!=="all") list = list.filter(c=>c.sem===Number(fs));
+  if(ft) list = list.filter(c=>(c.name||"").toLowerCase().includes(ft));
+
+  const tbody = $("courseTable").querySelector("tbody");
+  tbody.innerHTML = list.map(c=>{
+    const s10=score10(c);
+    const lg=toLetterAnd4(s10);
+    const cr=Number(c.credits);
+    const g4x = (lg.g4===""||!Number.isFinite(cr))? "" : (Number(lg.g4)*cr);
+
+    return `
+      <tr>
+        <td>HK ${c.sem}</td>
+        <td>${escapeHtml(c.name||"")}</td>
+        <td class="right">${fmt(c.credits,1)}</td>
+        <td class="right">${fmt(c.mid,1)}</td>
+        <td class="right">${fmt(c.final,1)}</td>
+        <td class="right">${fmt(c.midW,2)}</td>
+        <td class="right">${fmt(c.finalW,2)}</td>
+        <td class="right"><b>${s10===""? "" : fmt(s10,2)}</b></td>
+        <td>${lg.letter}${(s10!=="" && !isPassed(s10)) ? ` <span class="bad">(Rớt)</span>` : ""}</td>
+        <td class="right">${lg.g4===""? "" : fmt(lg.g4,2)}</td>
+        <td class="right">${g4x===""? "" : fmt(g4x,2)}</td>
+        <td>
+          <button class="ghost" onclick="editCourse(${c.id})">Sửa</button>
+          <button class="danger" onclick="deleteCourse(${c.id})">Xoá</button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  $("courseCount").textContent = `${state.courses.length} môn`;
+  renderKpi();
+}
+window.editCourse = function(id){
+  const c = state.courses.find(x=>x.id===id);
+  if(!c) return;
+  editingCourseId=id;
+
+  $("cSem").value=String(c.sem);
+  $("cName").value=c.name||"";
+  $("cCredits").value=c.credits??"";
+  $("cMid").value=c.mid??"";
+  $("cFinal").value=c.final??"";
+  $("cMidW").value=c.midW??0.4;
+  $("cFinalW").value=c.finalW??0.6;
+
+  $("btnAddCourse").style.display="none";
+  $("btnUpdateCourse").style.display="inline-block";
+  $("btnCancelCourseEdit").style.display="inline-block";
+  toast("Đang sửa môn…");
+};
+window.deleteCourse = function(id){
+  if(!confirm("Xoá môn này?")) return;
+  state.courses = state.courses.filter(x=>x.id!==id);
+  saveState();
+  renderCourses();
+  renderSummary();
+  toast("Đã xoá môn.");
+};
+function clearCourseForm(){
+  $("cName").value="";
+  $("cCredits").value="";
+  $("cMid").value="";
+  $("cFinal").value="";
+  $("cMidW").value=0.4;
+  $("cFinalW").value=0.6;
+}
+function cancelCourseEdit(){
+  editingCourseId=null;
+  $("btnAddCourse").style.display="inline-block";
+  $("btnUpdateCourse").style.display="none";
+  $("btnCancelCourseEdit").style.display="none";
+  clearCourseForm();
+}
+function readCourseForm(){
+  const sem=Number($("cSem").value);
+  const name=$("cName").value.trim();
+  const credits=Number($("cCredits").value);
+  const mid=Number($("cMid").value);
+  const fin=Number($("cFinal").value);
+  const midW=Number($("cMidW").value);
+  const finalW=Number($("cFinalW").value);
+
+  if(!name) return {ok:false, msg:"Bạn cần nhập tên môn."};
+  if(!Number.isFinite(credits) || credits<=0) return {ok:false, msg:"Tín chỉ không hợp lệ."};
+  if(!Number.isFinite(mid) || mid<0 || mid>10) return {ok:false, msg:"Điểm giữa kì phải 0–10."};
+  if(!Number.isFinite(fin) || fin<0 || fin>10) return {ok:false, msg:"Điểm cuối kì phải 0–10."};
+  if(!Number.isFinite(midW) || !Number.isFinite(finalW) || (midW+finalW)<=0) return {ok:false, msg:"Hệ số không hợp lệ."};
+
+  return {ok:true, data:{sem,name,credits,mid,final:fin,midW,finalW}};
+}
+function addCourse(){
+  const r=readCourseForm();
+  if(!r.ok){ toast(r.msg); return; }
+  state.lastId++;
+  state.courses.push({id:state.lastId, ...r.data});
+  saveState();
+  renderCourses();
+  renderSummary();
+  clearCourseForm();
+  toast("Đã thêm môn.");
+}
+function updateCourse(){
+  const r=readCourseForm();
+  if(!r.ok){ toast(r.msg); return; }
+  const c=state.courses.find(x=>x.id===editingCourseId);
+  if(!c) return;
+  Object.assign(c, r.data);
+  saveState();
+  renderCourses();
+  renderSummary();
+  cancelCourseEdit();
+  toast("Đã lưu chỉnh sửa môn.");
+}
+
+/* ========= RENDER: DRL TABLE ========= */
+let editingActId=null;
+function renderActs(){
+  const fs=$("actFilterSem").value;
+  const fc=$("actFilterCat").value;
+  const ft=$("actFilterText").value.trim().toLowerCase();
+
+  let list=[...state.activities].sort((a,b)=>(a.sem-b.sem)||(a.cat-b.cat)||(a.id-b.id));
+  if(fs!=="all") list=list.filter(a=>a.sem===Number(fs));
+  if(fc!=="all") list=list.filter(a=>a.cat===Number(fc));
+  if(ft) list=list.filter(a=>(a.name||"").toLowerCase().includes(ft));
+
+  const tbody=$("actTable").querySelector("tbody");
+  tbody.innerHTML=list.map(a=>{
+    const cat=DRL_CATS.find(c=>c.id===a.cat);
+    return `
+      <tr>
+        <td>HK ${a.sem}</td>
+        <td class="muted">${escapeHtml(cat?cat.name:("Mục "+a.cat))}</td>
+        <td>${escapeHtml(a.name||"")}${a.note?`<div class="muted small">${escapeHtml(a.note)}</div>`:""}</td>
+        <td class="right">${fmt(a.pts,2)}</td>
+        <td>${a.ev?linkify(a.ev):""}</td>
+        <td class="muted">${a.date||""}</td>
+        <td>
+          <button class="ghost" onclick="editAct(${a.id})">Sửa</button>
+          <button class="danger" onclick="deleteAct(${a.id})">Xoá</button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  $("actCount").textContent=`${state.activities.length} hoạt động`;
+  renderKpi();
+}
+window.editAct=function(id){
+  const a=state.activities.find(x=>x.id===id);
+  if(!a) return;
+  editingActId=id;
+
+  $("aSem").value=String(a.sem);
+  $("aCat").value=String(a.cat);
+  $("aName").value=a.name||"";
+  $("aPts").value=a.pts??1;
+  $("aEv").value=a.ev||"";
+  $("aDate").value=a.date||"";
+  $("aNote").value=a.note||"";
+
+  $("btnAddAct").style.display="none";
+  $("btnUpdateAct").style.display="inline-block";
+  $("btnCancelActEdit").style.display="inline-block";
+  toast("Đang sửa hoạt động…");
+};
+window.deleteAct=function(id){
+  if(!confirm("Xoá hoạt động này?")) return;
+  state.activities=state.activities.filter(x=>x.id!==id);
+  saveState();
+  renderActs();
+  renderSummary();
+  toast("Đã xoá hoạt động.");
+};
+function clearActForm(){
+  $("aName").value="";
+  $("aPts").value=1;
+  $("aEv").value="";
+  $("aDate").value="";
+  $("aNote").value="";
+}
+function cancelActEdit(){
+  editingActId=null;
+  $("btnAddAct").style.display="inline-block";
+  $("btnUpdateAct").style.display="none";
+  $("btnCancelActEdit").style.display="none";
+  clearActForm();
+}
+function readActForm(){
+  const sem=Number($("aSem").value);
+  const cat=Number($("aCat").value);
+  const name=$("aName").value.trim();
+  const pts=Number($("aPts").value||0);
+  const ev=$("aEv").value.trim();
+  const date=$("aDate").value;
+  const note=$("aNote").value.trim();
+
+  if(!name) return {ok:false, msg:"Bạn cần nhập tên hoạt động."};
+  if(!Number.isFinite(pts)) return {ok:false, msg:"Điểm không hợp lệ."};
+  return {ok:true, data:{sem,cat,name,pts,ev,date,note}};
+}
+function addAct(){
+  const r=readActForm();
+  if(!r.ok){ toast(r.msg); return; }
+  state.lastId++;
+  state.activities.push({id:state.lastId, ...r.data});
+  saveState();
+  renderActs();
+  renderSummary();
+  clearActForm();
+  toast("Đã thêm hoạt động.");
+}
+function updateAct(){
+  const r=readActForm();
+  if(!r.ok){ toast(r.msg); return; }
+  const a=state.activities.find(x=>x.id===editingActId);
+  if(!a) return;
+  Object.assign(a, r.data);
+  saveState();
+  renderActs();
+  renderSummary();
+  cancelActEdit();
+  toast("Đã lưu chỉnh sửa hoạt động.");
+}
+
+/* ========= SUMMARY ========= */
+function ensureSemGoals(){
+  const n=Number(state.settings.semCount);
+  for(let s=1;s<=n;s++){
+    if(!state.semesters[s]) state.semesters[s]={goalGpa:"", goalDrl:""};
+  }
+  for(const k of Object.keys(state.semesters)){
+    const kk=Number(k);
+    if(kk>n) delete state.semesters[k];
+  }
+}
+function loadGoalsForm(){
+  const s=Number($("sSem").value);
+  const g=state.semesters[s]||{goalGpa:"",goalDrl:""};
+  $("sGoalGpa").value=g.goalGpa;
+  $("sGoalDrl").value=g.goalDrl;
+}
+function saveGoals(){
+  const s=Number($("sSem").value);
+  const goalGpa = $("sGoalGpa").value==="" ? "" : Number($("sGoalGpa").value);
+  const goalDrl = $("sGoalDrl").value==="" ? "" : Number($("sGoalDrl").value);
+
+  if(goalGpa!=="" && (goalGpa<0 || goalGpa>4.0)){ toast("Mục tiêu GPA nên 0.00–4.00"); return; }
+  if(goalDrl!=="" && (goalDrl<0 || goalDrl>100)){ toast("Mục tiêu ĐRL nên 0–100"); return; }
+
+  state.semesters[s]={ goalGpa: (goalGpa===""?"":goalGpa), goalDrl:(goalDrl===""?"":goalDrl) };
+  saveState();
+  renderSummary();
+  toast("Đã lưu mục tiêu HK.");
+}
+function renderSummary(){
+  ensureSemGoals();
+  const n=Number(state.settings.semCount);
+
+  const tbody=$("summaryTable").querySelector("tbody");
+  let highCount=0, goalOkCount=0;
+
+  tbody.innerHTML=Array.from({length:n},(_,i)=>{
+    const sem=i+1;
+    const cs=calcSemesterCourses(sem);
+    const drl=calcDrlSemester(sem);
+    const gpa=cs.gpa===""? "" : Number(cs.gpa);
+    const goals=state.semesters[sem]||{goalGpa:"",goalDrl:""};
+
+    const gpaTxt = gpa===""? `<span class="muted">-</span>` : `<b>${fmt(gpa,2)}</b>`;
+    const drlTxt = `<b>${fmt(drl.total,0)}</b>`;
+
+    const cls = classifySemesterGPA(gpa===""? "":gpa);
+    const goal = goalStatus(sem, gpa===""?"":gpa, drl.total);
+    if(goal.text) goalOkCount += (goal.cls==="ok")?1:0;
+
+    const hb = scholarshipLabel(gpa===""?"":gpa, drl.total);
+    if(hb.cls==="ok") highCount++;
+
+    const goalGpaTxt = goals.goalGpa===""? `<span class="muted">-</span>` : fmt(goals.goalGpa,2);
+    const goalDrlTxt = goals.goalDrl===""? `<span class="muted">-</span>` : fmt(goals.goalDrl,0);
+
+    return `
+      <tr>
+        <td>HK ${sem}</td>
+        <td class="right">${fmt(cs.creditsAll,1) || `<span class="muted">-</span>`}</td>
+        <td class="right">${gpaTxt}</td>
+        <td class="right">${goalGpaTxt}</td>
+        <td>${cls || `<span class="muted">-</span>`}</td>
+        <td class="right">${drlTxt}</td>
+        <td class="right">${goalDrlTxt}</td>
+        <td><span class="${goal.cls}">${goal.text||""}</span></td>
+        <td><span class="${hb.cls}">${hb.text||""}</span></td>
+      </tr>
+    `;
+  }).join("");
+
+  const cum=calcCumulative();
+  const minCredits = state.settings.minCredits===""? "" : Number(state.settings.minCredits);
+  const need = (minCredits!=="" && Number.isFinite(minCredits)) ? Math.max(0, minCredits - cum.creditsPassed) : "";
+  const cgpa = cum.cgpa===""? "" : Number(cum.cgpa);
+  const target = state.settings.targetCgpa===""? "" : Number(state.settings.targetCgpa);
+  const targetOk = (cgpa!=="" && target!=="" && Number.isFinite(target)) ? (cgpa >= target) : null;
+
+  $("kpiSummary").innerHTML = [
+    {label:"GPA tích luỹ hiện tại", value: cgpa===""? "-" : fmt(cgpa,2)},
+    {label:"GPA mục tiêu dài hạn", value: state.settings.targetCgpa===""? "-" : fmt(target,2)},
+    {label:"Đạt mục tiêu dài hạn?", value: targetOk===null? "-" : (targetOk? "Đạt ✅":"Chưa ❌")},
+    {label:"HK “Cơ hội cao ✨”", value: `${highCount}/${n}`},
+    {label:"Tín chỉ đã hoàn thành (đậu)", value: fmt(cum.creditsPassed,1) || "-"},
+    {label:"Còn thiếu tối thiểu", value: need===""? "-" : fmt(need,1)},
+    {label:"HK đạt mục tiêu ngắn hạn", value: `${goalOkCount}/${n}`},
+  ].map(x=>`
+    <div class="box">
+      <div class="muted small">${escapeHtml(x.label)}</div>
+      <div class="num">${escapeHtml(String(x.value))}</div>
+    </div>`).join("");
+
+  renderKpi();
+}
+
+/* ========= TABS ========= */
+function showTab(name){
+  const tabs=["settings","courses","drl","summary"];
+  for(const t of tabs){
+    $("tab-"+t).style.display = (t===name) ? "block" : "none";
+  }
+  document.querySelectorAll(".tab").forEach(btn=>{
+    btn.classList.toggle("active", btn.dataset.tab===name);
+  });
+}
+
+/* ========= IMPORT/EXPORT/RESET ========= */
+function exportJson(){
+  const data=JSON.stringify(state, null, 2);
+  const blob=new Blob([data],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download="gpa-drl-data.json";
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+function importJson(){
+  const inp=document.createElement("input");
+  inp.type="file"; inp.accept="application/json";
+  inp.onchange=()=>{
+    const f=inp.files?.[0]; if(!f) return;
+    const rd=new FileReader();
+    rd.onload=()=>{
+      try{
+        const obj=JSON.parse(String(rd.result||""));
+        if(!obj || typeof obj!=="object") throw new Error("bad");
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+        location.reload();
+      }catch(e){
+        toast("File JSON không hợp lệ.");
+      }
+    };
+    rd.readAsText(f);
+  };
+  inp.click();
+}
+function resetAll(){
+  if(!confirm("Xoá toàn bộ dữ liệu?")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+/* ========= INIT ========= */
+function init(){
+  document.querySelectorAll(".tab").forEach(btn=>{
+    btn.addEventListener("click", ()=>showTab(btn.dataset.tab));
+  });
+
+  $("setSemCount").value = String(state.settings.semCount);
+  $("setMinCredits").value = state.settings.minCredits;
+  $("setTargetCgpa").value = state.settings.targetCgpa;
+  $("setScholarGpa").value = state.settings.scholarGpa;
+  $("setScholarDrl").value = state.settings.scholarDrl;
+
+  rebuildSemesterOptions();
+  fillCategoryOptions();
+  ensureSemGoals();
+
+  $("courseFilterSem").value="all";
+  $("actFilterSem").value="all";
+  $("actFilterCat").value="all";
+
+  $("setSemCount").addEventListener("change", ()=>{
+    state.settings.semCount = Number($("setSemCount").value);
+    ensureSemGoals();
+    rebuildSemesterOptions();
+    saveState();
+    renderCourses();
+    renderActs();
+    renderSummary();
+    toast("Đã cập nhật số học kì.");
+  });
+  $("setMinCredits").addEventListener("input", ()=>{
+    state.settings.minCredits = $("setMinCredits").value;
+    saveState(); renderSummary(); renderKpi();
+  });
+  $("setTargetCgpa").addEventListener("input", ()=>{
+    state.settings.targetCgpa = $("setTargetCgpa").value;
+    saveState(); renderSummary(); renderKpi();
+  });
+  $("setScholarGpa").addEventListener("input", ()=>{
+    state.settings.scholarGpa = Number($("setScholarGpa").value||3.6);
+    saveState(); renderSummary(); renderKpi();
+  });
+  $("setScholarDrl").addEventListener("input", ()=>{
+    state.settings.scholarDrl = Number($("setScholarDrl").value||90);
+    saveState(); renderSummary(); renderKpi();
+  });
+
+  $("btnAddCourse").addEventListener("click", addCourse);
+  $("btnUpdateCourse").addEventListener("click", updateCourse);
+  $("btnCancelCourseEdit").addEventListener("click", cancelCourseEdit);
+  $("courseFilterSem").addEventListener("change", renderCourses);
+  $("courseFilterText").addEventListener("input", renderCourses);
+
+  $("btnAddAct").addEventListener("click", addAct);
+  $("btnUpdateAct").addEventListener("click", updateAct);
+  $("btnCancelActEdit").addEventListener("click", cancelActEdit);
+  $("actFilterSem").addEventListener("change", renderActs);
+  $("actFilterCat").addEventListener("change", renderActs);
+  $("actFilterText").addEventListener("input", renderActs);
+
+  $("sSem").addEventListener("change", loadGoalsForm);
+  $("btnSaveGoals").addEventListener("click", saveGoals);
+  $("sSem").value="1";
+  loadGoalsForm();
+
+  $("btnExport").addEventListener("click", exportJson);
+  $("btnImport").addEventListener("click", importJson);
+  $("btnReset").addEventListener("click", resetAll);
+
+  renderCourses();
+  renderActs();
+  renderSummary();
+  renderKpi();
+}
+init();
+</script>
+</body>
+</html>
